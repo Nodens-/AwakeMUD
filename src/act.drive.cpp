@@ -2134,7 +2134,7 @@ ACMD(do_transfer)
     veh->owner = GET_IDNUM(targ);
     veh->sub = FALSE;
     
-    save_vehicles();
+    save_vehicles(FALSE);
   }
 }
  
