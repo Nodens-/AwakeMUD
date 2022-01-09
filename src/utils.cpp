@@ -2192,7 +2192,7 @@ struct room_data *get_obj_in_room(struct obj_data *obj) {
     return get_ch_in_room(obj->carried_by);
 
   if (obj->worn_by)
-    return get_ch_in_room(obj->carried_by);
+    return get_ch_in_room(obj->worn_by);
 
   // All is lost. The object floats in an endless void.
   snprintf(errbuf, sizeof(errbuf), "SYSERR: get_obj_in_room called on obj %s, but it's not in a room or vehicle!", GET_OBJ_NAME(obj));
@@ -2582,6 +2582,8 @@ struct obj_data *unattach_attachment_from_weapon(int location, struct obj_data *
         send_to_char(ch, "You'll need at least %d nuyen on hand to cover the cost of the new barrel.\r\n", removal_cost);
         return NULL;
       }
+
+      lose_nuyen(ch, removal_cost, NUYEN_OUTFLOW_REPAIRS);
     }
    // We assume the coder knows what they're doing when unattaching a gasvent. They may proceed.
   }
@@ -3809,6 +3811,40 @@ char* get_string_after_color_code_removal(const char *str, struct char_data *ch)
     }
   }
   return  clearstr;
+}
+
+// Returns the amount of color codes in a string.
+int count_color_codes_in_string(const char *str) {
+  const char *ptr = str;
+  long ptr_max = strlen(str) - 1;
+
+  int sum = 0;
+
+  while (*ptr && (ptr - str) <= ptr_max) {
+    if (*ptr == '^') {
+      // Parse a single ^ character.
+      if (*(ptr+1) == '^') {
+        sum++;
+        ptr += 2;
+        continue;
+      }
+      // Count color codes.
+      // There are two types of color: Two-character tags (^g) and xterm tags (^[F123]). We must account for both.
+      // 7 for xterm tags 2 for regular tags
+      else if (*(ptr+1) == '[') {
+          ptr  += 7;
+          sum += 7;
+      }
+      else {
+        ptr += 2;
+        sum += 2;
+      }
+    }
+    //Clear character, save it.
+    else
+      ptr += 1;
+  }
+  return  sum;
 }
 
 #define CHECK_FUNC_AND_SFUNC_FOR(function) (mob_index[GET_MOB_RNUM(npc)].func == (function) || mob_index[GET_MOB_RNUM(npc)].sfunc == (function))
